@@ -41,6 +41,7 @@ cd RedisLite
 
 # For Python version
 pip install -r requirements.txt
+```
 
 ### Run CLI
 
@@ -48,6 +49,9 @@ pip install -r requirements.txt
 python redislite.py
 # or
 java -jar RedisLite.jar
+```
+
+---
 
 ## 📝 Basic Usage
 
@@ -67,6 +71,7 @@ store.set("session", "abc123", ttl=10)  # expires in 10 seconds
 
 # Delete a key
 store.delete("name")
+```
 
 ### CLI Example
 
@@ -79,6 +84,10 @@ Harshad
 1
 > SET temp 123 EX 5
 OK
+```
+
+---
+
 ## 💡 Advanced Features (Optional / Roadmap)
 
 - Pub/Sub Messaging
@@ -99,3 +108,21 @@ RedisLite/
 ├── tests/              # Unit tests
 ├── README.md
 └── requirements.txt
+```
+
+---
+
+## ✅ Contributing
+
+Contributions are welcome!
+
+- Fork the repository
+- Create a branch (`feature/awesome-feature`)
+- Commit your changes
+- Open a Pull Request
+
+---
+
+## 📜 License
+
+MIT License © 2026 Harshad Jadhav
