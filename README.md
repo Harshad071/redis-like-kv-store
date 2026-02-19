@@ -79,19 +79,19 @@ Harshad
 1
 > SET temp 123 EX 5
 OK
-💡 Advanced Features (Optional / Roadmap)
+## 💡 Advanced Features (Optional / Roadmap)
 
-Pub/Sub Messaging
+- Pub/Sub Messaging
+- Sharding & Clustering for distributed storage
+- LRU/LFU eviction policies
+- Transactions (MULTI/EXEC)
+- Lua scripting support
 
-Sharding & Clustering for distributed storage
+---
 
-LRU/LFU eviction policies
+## 📂 Project Structure
 
-Transactions (MULTI/EXEC)
-
-Lua scripting support
-
-📂 Project Structure
+```text
 RedisLite/
 ├── redislite.py        # Core Python implementation
 ├── cli.py              # Command-line interface
@@ -99,21 +99,3 @@ RedisLite/
 ├── tests/              # Unit tests
 ├── README.md
 └── requirements.txt
-
-✅ Contributing
-
-Contributions are welcome!
-
-Fork the repository
-
-Create a branch (feature/awesome-feature)
-
-Commit your changes
-
-Open a Pull Request
-
-📜 License
-
-MIT License © 2026 Harshad Jadhav
-
-
