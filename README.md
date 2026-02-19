@@ -68,4 +68,16 @@ store.set("session", "abc123", ttl=10)  # expires in 10 seconds
 # Delete a key
 store.delete("name")
 
+### CLI Example
+
+```text
+> SET user Harshad
+OK
+> GET user
+Harshad
+> DEL user
+1
+> SET temp 123 EX 5
+OK
+
 
