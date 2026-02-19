@@ -41,3 +41,11 @@ cd RedisLite
 
 # For Python version
 pip install -r requirements.txt
+
+### Run CLI
+
+```bash
+python redislite.py
+# or
+java -jar RedisLite.jar
+
