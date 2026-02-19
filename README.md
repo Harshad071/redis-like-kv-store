@@ -49,3 +49,23 @@ python redislite.py
 # or
 java -jar RedisLite.jar
 
+## 📝 Basic Usage
+
+### Python Example
+
+```python
+from redislite import RedisLite
+
+store = RedisLite()
+
+# Set and Get
+store.set("name", "Harshad")
+print(store.get("name"))  # Output: Harshad
+
+# TTL example
+store.set("session", "abc123", ttl=10)  # expires in 10 seconds
+
+# Delete a key
+store.delete("name")
+
+
