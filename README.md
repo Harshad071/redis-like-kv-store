@@ -1,128 +1,276 @@
-# 🛠️ RedisLite – A Redis-like Key-Value Store
+# RedisLite
 
-**RedisLite** is a lightweight, in-memory key-value store inspired by [Redis](https://redis.io/). Built for learning and experimentation, it supports basic key-value operations, TTL (time-to-live), persistence, and simple concurrency. Perfect for developers and students who want to understand how modern in-memory databases work under the hood.
+## A Crash-Safe, Single-Node In-Memory Key–Value Store (Systems Engineering Project)
 
----
+> **Positioning statement (read this first):**
+> RedisLite is **not Redis**, not a Redis clone, and not production-ready.
+> This project exists to demonstrate **deep understanding of storage-system fundamentals**, specifically **durable persistence and crash recovery** in a single-node key–value store.
 
-## 🔹 Features
-
-- **In-Memory Storage:** Ultra-fast key-value operations using efficient data structures.
-- **Persistence:** Optional snapshot-based or append-only file persistence to save your data.
-- **TTL Support:** Automatically expire keys after a specified time.
-- **Data Types:** Strings, Lists, and Hash-like structures (basic).
-- **Concurrency Safe:** Thread-safe operations for multi-threaded applications.
-- **Simple CLI Interface:** Interact with the store via a command-line interface.
-- **Easy API Integration:** Simple methods to integrate in Python/Java projects.
+Everything in this repository is intentionally scoped. Features that dilute correctness are omitted on purpose.
 
 ---
 
-## ⚡ Why RedisLite?
+## Why This Project Exists
 
-- Learn how caching engines like Redis work internally.
-- Understand memory management, data structures, and persistence strategies.
-- Build a foundation for distributed systems, caching, and real-time applications.
-- Showcase a production-grade system-level project in your portfolio.
+Modern databases are hard not because of APIs, but because of **failure modes**:
+
+* Power loss
+* Partial writes
+* Process crashes
+* Corrupted logs
+
+RedisLite was built to answer one question rigorously:
+
+> *How do you make a simple in-memory key–value store survive crashes without losing correctness?*
+
+This repository is the answer.
 
 ---
 
-## 🚀 Getting Started
+## Explicit Non-Goals
 
-### Prerequisites
+RedisLite intentionally does **not** implement:
 
-- **Python 3.10+** or **Java 11+** (depending on implementation)
-- Git
+* Networking or client/server protocol
+* Clustering or replication
+* Pub/Sub
+* Lua scripting
+* Advanced Redis data types
+* High-throughput optimizations
 
-### Installation
+If you are looking for those, use Redis.
 
-```bash
-# Clone the repo
-git clone https://github.com/yourusername/RedisLite.git
-cd RedisLite
+---
 
-# For Python version
-pip install -r requirements.txt
+## System Overview
+
+RedisLite is a **single-process, single-node** key–value store with:
+
+* In-memory state
+* Write-Ahead Logging (WAL)
+* Snapshot-based persistence
+* Deterministic crash recovery
+
+The system prioritizes **correctness, durability, and transparency** over performance.
+
+---
+
+## Architecture
+
+### Core Components
+
+```
++-------------------+
+|  Client (CLI/API) |
++-------------------+
+          |
+          v
++-------------------+
+| In-Memory KV Map  |  ← authoritative runtime state
++-------------------+
+          |
+          v
++-------------------+
+| Write-Ahead Log   |  ← durability before mutation
++-------------------+
+          |
+          v
++-------------------+
+| Snapshot Engine   |  ← periodic full-state persistence
++-------------------+
 ```
 
-### Run CLI
+---
 
-```bash
-python redislite.py
-# or
-java -jar RedisLite.jar
-```
+## Persistence Model (Core Focus)
+
+### Write-Ahead Log (WAL)
+
+* Every mutating operation is **appended to disk before being applied in memory**
+* Log entries are:
+
+  * Sequential
+  * Checksummed
+  * Idempotent on replay
+
+**Guarantee:**
+
+> If an operation is acknowledged, it will survive a crash.
 
 ---
 
-## 📝 Basic Usage
+### Snapshotting
 
-### Python Example
+* Periodic full-state snapshots
+* Written to a temporary file
+* Atomically promoted via rename
 
-```python
-from redislite import RedisLite
+**Guarantee:**
 
-store = RedisLite()
+> Snapshots are either fully valid or ignored.
 
-# Set and Get
-store.set("name", "Harshad")
-print(store.get("name"))  # Output: Harshad
+---
 
-# TTL example
-store.set("session", "abc123", ttl=10)  # expires in 10 seconds
+### Crash Recovery
 
-# Delete a key
-store.delete("name")
+On startup:
+
+1. Load latest valid snapshot
+2. Replay WAL entries newer than the snapshot
+3. Skip corrupted or partial log entries safely
+
+Crash recovery is **deterministic** and **repeatable**.
+
+---
+
+## Failure Modes (Explicitly Documented)
+
+| Failure Scenario           | Outcome                            |
+| -------------------------- | ---------------------------------- |
+| Process crash during write | WAL replay restores state          |
+| Power loss mid-log-write   | Partial entry detected and ignored |
+| Crash during snapshot      | Snapshot discarded safely          |
+| Disk full                  | Writes fail explicitly             |
+
+This system **fails loudly**, not silently.
+
+---
+
+## Concurrency Model
+
+* Single writer model
+* Coarse-grained locking around mutations
+
+**Rationale:**
+Concurrency complexity is intentionally minimized to keep durability reasoning correct and auditable.
+
+---
+
+## TTL Support (Secondary Feature)
+
+* Keys may have optional expiration timestamps
+* TTL is enforced lazily during access
+* Expired keys are removed before read or write
+
+TTL is implemented for realism but is **not the focus of this project**.
+
+---
+
+## CLI Example
+
 ```
-
-### CLI Example
-
-```text
 > SET user Harshad
 OK
 > GET user
 Harshad
 > DEL user
 1
-> SET temp 123 EX 5
-OK
+```
+
+This CLI directly interacts with the in-process store. There is no network protocol.
+
+---
+
+## Python API Example
+
+```python
+from redislite import RedisLite
+
+store = RedisLite()
+store.set("name", "Harshad")
+print(store.get("name"))
 ```
 
 ---
 
-## 💡 Advanced Features (Optional / Roadmap)
+## Testing Strategy
 
-- Pub/Sub Messaging
-- Sharding & Clustering for distributed storage
-- LRU/LFU eviction policies
-- Transactions (MULTI/EXEC)
-- Lua scripting support
+### What Is Tested
+
+* WAL append correctness
+* Crash recovery determinism
+* Snapshot atomicity
+* Idempotent log replay
+* TTL expiration behavior
+
+### How Crashes Are Tested
+
+* Forced process termination
+* Partial log writes
+* Interrupted snapshot creation
+
+### What Is NOT Tested
+
+* Distributed failures
+* Network partitions
+* High-concurrency scaling
 
 ---
 
-## 📂 Project Structure
+## Performance Notes
 
-```text
+RedisLite is **not optimized for throughput**.
+
+Expected characteristics:
+
+* Higher latency than Redis
+* Predictable correctness under failure
+* Linear log replay time
+
+Performance trade-offs are documented, not hidden.
+
+---
+
+## Project Structure
+
+```
 RedisLite/
-├── redislite.py        # Core Python implementation
-├── cli.py              # Command-line interface
-├── persistence.py      # Snapshot / AOF logic
-├── tests/              # Unit tests
-├── README.md
-└── requirements.txt
+├── redislite.py        # Core KV store
+├── wal.py              # Write-ahead logging
+├── snapshot.py         # Snapshot persistence
+├── recovery.py         # Crash recovery logic
+├── cli.py              # Interactive CLI
+├── tests/              # Crash + persistence tests
+├── DESIGN.md           # System invariants & reasoning
+└── README.md
 ```
 
 ---
 
-## ✅ Contributing
+## What This Project Demonstrates
 
-Contributions are welcome!
-
-- Fork the repository
-- Create a branch (`feature/awesome-feature`)
-- Commit your changes
-- Open a Pull Request
+* Understanding of durability guarantees
+* Correct use of WAL
+* Crash recovery reasoning
+* Atomic file operations
+* Engineering restraint and scope control
 
 ---
 
-## 📜 License
+## Who This Project Is For
+
+* Backend engineers
+* Systems programming learners
+* Reviewers evaluating engineering depth
+
+This repository is meant to be **read**, not just run.
+
+---
+
+## License
 
 MIT License © 2026 Harshad Jadhav
+
+---
+
+## Final Note to Reviewers
+
+This project intentionally chooses **depth over breadth**.
+
+If you are evaluating RedisLite, judge it on:
+
+* Correctness
+* Failure handling
+* Design clarity
+
+Not on feature count.
