@@ -1,4 +1,4 @@
-# RedisLite
+# RedisLite.
 
 ## A Crash-Safe, Single-Node In-Memory Key–Value Store (Systems Engineering Project)
 
