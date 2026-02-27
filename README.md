@@ -1,276 +1,288 @@
-# RedisLite
+# RedisLite Microservice
 
-## A Crash-Safe, Single-Node In-Memory Key–Value Store (Systems Engineering Project)
+A production-ready, serverless HTTP API wrapper for RedisLite - an in-memory key-value store with TTL support. Deployed on Vercel for lightning-fast, scalable operations.
 
-> **Positioning statement (read this first):**
-> RedisLite is **not Redis**, not a Redis clone, and not production-ready.
-> This project exists to demonstrate **deep understanding of storage-system fundamentals**, specifically **durable persistence and crash recovery** in a single-node key–value store.
+## Features
 
-Everything in this repository is intentionally scoped. Features that dilute correctness are omitted on purpose.
+- **In-Memory Key-Value Store**: Fast, thread-safe storage with automatic expiration
+- **TTL Support**: Set expiration times for keys with automatic cleanup
+- **RESTful API**: Simple HTTP endpoints for all operations
+- **FastAPI**: Modern, async Python framework with auto-generated documentation
+- **Serverless Ready**: Optimized for Vercel deployment
+- **CORS Enabled**: Ready for cross-origin requests
+- **Health Check**: Built-in monitoring endpoint
 
----
+## Quick Start
 
-## Why This Project Exists
+### Local Development
 
-Modern databases are hard not because of APIs, but because of **failure modes**:
+1. **Install dependencies**:
+```bash
+pip install -r requirements.txt
+```
 
-* Power loss
-* Partial writes
-* Process crashes
-* Corrupted logs
+2. **Run the development server**:
+```bash
+uvicorn api.index:app --reload
+```
 
-RedisLite was built to answer one question rigorously:
+3. **Access the API**:
+   - Interactive docs: `http://localhost:8000/docs`
+   - ReDoc: `http://localhost:8000/redoc`
+   - Health: `http://localhost:8000/health`
 
-> *How do you make a simple in-memory key–value store survive crashes without losing correctness?*
+## API Endpoints
 
-This repository is the answer.
+### Health Check
+```
+GET /health
+```
+Returns service status and version.
 
----
+### Set a Key
+```
+POST /api/set
+Content-Type: application/json
 
-## Explicit Non-Goals
+{
+  "key": "user:123",
+  "value": {"name": "John", "email": "john@example.com"},
+  "ttl": 3600
+}
+```
 
-RedisLite intentionally does **not** implement:
+**Response**:
+```json
+{
+  "success": true,
+  "key": "user:123",
+  "ttl": 3600,
+  "message": "Key set successfully"
+}
+```
 
-* Networking or client/server protocol
-* Clustering or replication
-* Pub/Sub
-* Lua scripting
-* Advanced Redis data types
-* High-throughput optimizations
+### Get a Key
+```
+GET /api/get?key=user:123
+```
 
-If you are looking for those, use Redis.
+**Response**:
+```json
+{
+  "key": "user:123",
+  "value": {"name": "John", "email": "john@example.com"},
+  "exists": true
+}
+```
 
----
+### Delete a Key
+```
+DELETE /api/delete?key=user:123
+```
 
-## System Overview
+**Response**:
+```json
+{
+  "key": "user:123",
+  "deleted": true
+}
+```
 
-RedisLite is a **single-process, single-node** key–value store with:
+### Check if Key Exists
+```
+GET /api/exists?key=user:123
+```
 
-* In-memory state
-* Write-Ahead Logging (WAL)
-* Snapshot-based persistence
-* Deterministic crash recovery
+**Response**:
+```json
+{
+  "key": "user:123",
+  "exists": true
+}
+```
 
-The system prioritizes **correctness, durability, and transparency** over performance.
+## Deployment on Vercel
 
----
+### Prerequisites
+- Vercel account (https://vercel.com)
+- GitHub repository with this project
+
+### Deploy Steps
+
+1. **Push to GitHub**:
+```bash
+git add .
+git commit -m "Initial commit: RedisLite microservice"
+git push origin main
+```
+
+2. **Deploy to Vercel**:
+   - Go to https://vercel.com/import
+   - Select your GitHub repository
+   - Click "Deploy"
+   - Vercel will automatically detect the `vercel.json` configuration
+
+3. **Access Your API**:
+   - Your API will be available at `https://your-project.vercel.app`
+   - Interactive docs at `https://your-project.vercel.app/docs`
+
+### Environment Variables
+
+The service requires no environment variables for basic functionality. Optional environment variables:
+
+```
+PYTHONUNBUFFERED=1  # Ensures Python output is unbuffered (set in vercel.json)
+```
+
+## Docker Deployment
+
+Build and run with Docker:
+
+```bash
+# Build
+docker build -t redislite-api .
+
+# Run
+docker run -p 8000:8000 redislite-api
+```
+
+## API Examples
+
+### Using cURL
+
+```bash
+# Set a key
+curl -X POST http://localhost:8000/api/set \
+  -H "Content-Type: application/json" \
+  -d '{"key": "mykey", "value": "myvalue", "ttl": 60}'
+
+# Get a key
+curl http://localhost:8000/api/get?key=mykey
+
+# Delete a key
+curl -X DELETE http://localhost:8000/api/delete?key=mykey
+
+# Check if key exists
+curl http://localhost:8000/api/exists?key=mykey
+```
+
+### Using Python
+
+```python
+import requests
+
+base_url = "http://localhost:8000"
+
+# Set a key
+response = requests.post(f"{base_url}/api/set", json={
+    "key": "session:abc123",
+    "value": {"user_id": 1, "role": "admin"},
+    "ttl": 3600
+})
+print(response.json())
+
+# Get a key
+response = requests.get(f"{base_url}/api/get", params={"key": "session:abc123"})
+print(response.json())
+```
+
+### Using JavaScript
+
+```javascript
+const baseUrl = "http://localhost:8000";
+
+// Set a key
+await fetch(`${baseUrl}/api/set`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    key: "token:xyz",
+    value: { access: "write", user: "john" },
+    ttl: 7200
+  })
+});
+
+// Get a key
+const response = await fetch(`${baseUrl}/api/get?key=token:xyz`);
+const data = await response.json();
+console.log(data);
+```
+
+## Use Cases
+
+- **Session Management**: Store user sessions with automatic expiration
+- **Cache Layer**: Quick access to frequently requested data
+- **Rate Limiting**: Track API call counts with TTL-based reset
+- **Temporary Storage**: Store temporary data that needs automatic cleanup
+- **Real-time Features**: Fast in-memory data for real-time applications
+- **Queue Simulation**: Simple job queue implementation
+
+## Performance
+
+- **Sub-millisecond latency**: In-memory operations
+- **Thread-safe**: Multiple concurrent requests handled safely
+- **Automatic cleanup**: Background daemon removes expired keys every second
+- **Scalable**: Handles thousands of keys efficiently
 
 ## Architecture
 
-### Core Components
-
 ```
-+-------------------+
-|  Client (CLI/API) |
-+-------------------+
-          |
-          v
-+-------------------+
-| In-Memory KV Map  |  ← authoritative runtime state
-+-------------------+
-          |
-          v
-+-------------------+
-| Write-Ahead Log   |  ← durability before mutation
-+-------------------+
-          |
-          v
-+-------------------+
-| Snapshot Engine   |  ← periodic full-state persistence
-+-------------------+
+┌─────────────────────────────────────────┐
+│         Vercel Serverless               │
+│  ┌─────────────────────────────────┐   │
+│  │  FastAPI Application            │   │
+│  │  (HTTP Routing & Validation)    │   │
+│  └─────────────────────────────────┘   │
+│             ↓                           │
+│  ┌─────────────────────────────────┐   │
+│  │  RedisLite Store                │   │
+│  │  (In-Memory K/V with TTL)       │   │
+│  └─────────────────────────────────┘   │
+│             ↓                           │
+│  ┌─────────────────────────────────┐   │
+│  │  Expiration Daemon              │   │
+│  │  (Background Cleanup Thread)    │   │
+│  └─────────────────────────────────┘   │
+└─────────────────────────────────────────┘
 ```
 
----
+## Limitations
 
-## Persistence Model (Core Focus)
+- **Serverless constraints**: Data persists only during function execution
+- **Memory limited**: Bound by serverless environment memory limits
+- **Single instance**: Each deployment is independent (no shared state across instances)
+- **Cold starts**: Initial request may experience latency
 
-### Write-Ahead Log (WAL)
+For persistent storage needs, consider integrating with a database like PostgreSQL or a managed Redis service.
 
-* Every mutating operation is **appended to disk before being applied in memory**
-* Log entries are:
+## Development
 
-  * Sequential
-  * Checksummed
-  * Idempotent on replay
-
-**Guarantee:**
-
-> If an operation is acknowledged, it will survive a crash.
-
----
-
-### Snapshotting
-
-* Periodic full-state snapshots
-* Written to a temporary file
-* Atomically promoted via rename
-
-**Guarantee:**
-
-> Snapshots are either fully valid or ignored.
-
----
-
-### Crash Recovery
-
-On startup:
-
-1. Load latest valid snapshot
-2. Replay WAL entries newer than the snapshot
-3. Skip corrupted or partial log entries safely
-
-Crash recovery is **deterministic** and **repeatable**.
-
----
-
-## Failure Modes (Explicitly Documented)
-
-| Failure Scenario           | Outcome                            |
-| -------------------------- | ---------------------------------- |
-| Process crash during write | WAL replay restores state          |
-| Power loss mid-log-write   | Partial entry detected and ignored |
-| Crash during snapshot      | Snapshot discarded safely          |
-| Disk full                  | Writes fail explicitly             |
-
-This system **fails loudly**, not silently.
-
----
-
-## Concurrency Model
-
-* Single writer model
-* Coarse-grained locking around mutations
-
-**Rationale:**
-Concurrency complexity is intentionally minimized to keep durability reasoning correct and auditable.
-
----
-
-## TTL Support (Secondary Feature)
-
-* Keys may have optional expiration timestamps
-* TTL is enforced lazily during access
-* Expired keys are removed before read or write
-
-TTL is implemented for realism but is **not the focus of this project**.
-
----
-
-## CLI Example
+### Project Structure
 
 ```
-> SET user Harshad
-OK
-> GET user
-Harshad
-> DEL user
-1
+.
+├── api/
+│   ├── index.py          # Main FastAPI application
+│   └── redislite.py      # RedisLite implementation
+├── requirements.txt       # Python dependencies
+├── vercel.json           # Vercel configuration
+├── Dockerfile            # Docker configuration
+└── README.md             # This file
 ```
 
-This CLI directly interacts with the in-process store. There is no network protocol.
+### Code Quality
 
----
-
-## Python API Example
-
-```python
-from redislite import RedisLite
-
-store = RedisLite()
-store.set("name", "Harshad")
-print(store.get("name"))
-```
-
----
-
-## Testing Strategy
-
-### What Is Tested
-
-* WAL append correctness
-* Crash recovery determinism
-* Snapshot atomicity
-* Idempotent log replay
-* TTL expiration behavior
-
-### How Crashes Are Tested
-
-* Forced process termination
-* Partial log writes
-* Interrupted snapshot creation
-
-### What Is NOT Tested
-
-* Distributed failures
-* Network partitions
-* High-concurrency scaling
-
----
-
-## Performance Notes
-
-RedisLite is **not optimized for throughput**.
-
-Expected characteristics:
-
-* Higher latency than Redis
-* Predictable correctness under failure
-* Linear log replay time
-
-Performance trade-offs are documented, not hidden.
-
----
-
-## Project Structure
-
-```
-RedisLite/
-├── redislite.py        # Core KV store
-├── wal.py              # Write-ahead logging
-├── snapshot.py         # Snapshot persistence
-├── recovery.py         # Crash recovery logic
-├── cli.py              # Interactive CLI
-├── tests/              # Crash + persistence tests
-├── DESIGN.md           # System invariants & reasoning
-└── README.md
-```
-
----
-
-## What This Project Demonstrates
-
-* Understanding of durability guarantees
-* Correct use of WAL
-* Crash recovery reasoning
-* Atomic file operations
-* Engineering restraint and scope control
-
----
-
-## Who This Project Is For
-
-* Backend engineers
-* Systems programming learners
-* Reviewers evaluating engineering depth
-
-This repository is meant to be **read**, not just run.
-
----
+The code follows Python best practices:
+- Type hints for better IDE support and documentation
+- Comprehensive docstrings
+- Thread-safe operations with locks
+- Proper error handling
+- CORS middleware for cross-origin support
 
 ## License
 
-MIT License © 2026 Harshad Jadhav
+MIT
 
----
+## Support
 
-## Final Note to Reviewers
-
-This project intentionally chooses **depth over breadth**.
-
-If you are evaluating RedisLite, judge it on:
-
-* Correctness
-* Failure handling
-* Design clarity
-
-Not on feature count.
+For issues, questions, or contributions, please visit the GitHub repository.

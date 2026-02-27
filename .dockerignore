@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+.git
+.gitignore
+.dockerignore
+node_modules/
+.next/
+out/
+build/
+dist/
+.vercel/
+README.md
