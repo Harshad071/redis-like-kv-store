@@ -3,12 +3,6 @@ __v0_runtime_loader.js
 __v0_devtools.tsx
 __v0_jsx-dev-runtime.ts
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.pyc
-
 # Common ignores
 node_modules/
 .next/
